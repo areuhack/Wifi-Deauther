@@ -32,7 +32,7 @@ Before running the script, ensure the following requirements are met:
 1. Clone the repository:
    ```bash
    git clone https://github.com/areuhack/Wifi-Deauther.git
-   cd wifi-deauther
+   cd Wifi-Deauther
 2. Make the script executable:
    ```bash
    chmod +x wifi_deauther.py
