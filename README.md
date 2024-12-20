@@ -13,5 +13,5 @@ WiFi Deauther is a Python-based tool designed for ethical hacking and penetratio
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/<your-username>/wifi-deauther.git
-   cd wifi-deauther
+   git clone https://github.com/areuhack/Wifi-Deauther.git
+   cd Wifi-Deauther
