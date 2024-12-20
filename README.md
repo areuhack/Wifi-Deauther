@@ -9,9 +9,36 @@ WiFi Deauther is a Python-based tool designed for ethical hacking and penetratio
 - **Deauthentication Attack**: Perform deauth attacks on specific networks or devices to test network security.
 - **Graceful Interrupt Handling**: `Ctrl+C` stops scanning but keeps the script running for further operations. A second `Ctrl+C` exits the script.
 
+## Requirements
+
+Before running the script, ensure the following requirements are met:
+
+1. **Operating System**: Linux-based system with support for wireless interfaces (e.g., Kali Linux, Ubuntu).
+2. **Python Version**: Python 3.6 or later.
+3. **Aircrack-ng Suite**: Includes `airmon-ng`, `airodump-ng`, and `aireplay-ng`.
+   - Install with:
+     ```bash
+     sudo apt install aircrack-ng
+     ```
+4. **Wireless Adapter**: 
+   - Must support monitor mode and packet injection.
+   - Use the following command to verify:
+     ```bash
+     sudo aireplay-ng --test <interface>
+     ```
+
 ## Installation
 
 1. Clone the repository:
    ```bash
    git clone https://github.com/areuhack/Wifi-Deauther.git
-   cd Wifi-Deauther
+   cd wifi-deauther
+2. Make the script executable:
+   ```bash
+   chmod +x live_deauth.py
+3. Ensure dependencies are installed:
+   ```bash
+   sudo apt install python3
+## Usage
+```bash
+sudo python3 wifi_deauther.py
