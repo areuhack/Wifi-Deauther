@@ -35,7 +35,7 @@ Before running the script, ensure the following requirements are met:
    cd wifi-deauther
 2. Make the script executable:
    ```bash
-   chmod +x live_deauth.py
+   chmod +x wifi_deauther.py
 3. Ensure dependencies are installed:
    ```bash
    sudo apt install python3
